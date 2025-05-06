@@ -399,7 +399,7 @@ def main():
         for turn_index in range(2, num_turns + 1):
             # Alternate roles
             if current_role == "client":
-                next_role = "therapist_sfbt_prompt"
+                next_role = "therapist_sfbt"
             else:
                 next_role = "client"
 

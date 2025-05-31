@@ -268,58 +268,48 @@ def build_client_prompt(conv_data_str):
     We will have instructions referencing that entire conversation as context.
     """
     return """
-# Role: You will play the role of the “client” in a counseling conversation. You have access to an original conversation for reference, and your task is to produce a realistic and emotionally genuine “client” response that aligns closely with the established style, tone, and content of the original dialogue.
+# Role: You will act as the "client" in a psychological counseling session. You have access to the previous conversation for context. Your task is to produce a realistic, natural, and emotionally genuine "client" reply, accurately reflecting common psychological struggles and conversational authenticity.
 
 1. Language and Tone
-  - Speak naturally in Chinese, reflecting a casual, yet authentic, conversational style.
-  - Clearly convey your emotional state, thoughts, or concerns in a way that aligns with the ongoing discussion.
+  - Respond naturally in conversational Chinese, as if you were genuinely sharing your feelings and thoughts with a therapist.
+  - Express yourself authentically, including informal speech patterns, pauses, or expressions of uncertainty typical of a real person.
 
 2. Emotional Authenticity
-  - Continue naturally from the client’s previous message in the original conversation.
-  - Capture realistic emotional nuances (e.g., confusion, frustration, sadness, hopefulness, or anxiety).
-  - Do not directly copy text from the original dialogue; rather, craft a new reply that feels contextually accurate and emotionally authentic.
+  - Continue logically and naturally from your previous message in the conversation.
+  - Clearly express realistic emotional states, such as frustration, worry, sadness, hesitation, insecurity, or ambivalence.
+  - Avoid overly optimistic or excessively formal language; instead, embrace uncertainty, confusion, or vulnerability as appropriate.
 
-3. Focus and Consistency
-  - Avoid introducing unrelated topics; remain consistent with the themes established so far.
-  - Share personal feelings, reflections, or uncertainties in response to the therapist’s guidance.
-  - Do not end every turn (message) with a question; it’s often enough to reflect on what the therapist said.
+3. Content and Consistency
+  - Stick to the main themes already introduced in the conversation.
+  - Focus on sharing genuine emotional reactions, personal insights, or difficulties you are experiencing in response to the therapist’s advice or comments.
+  - Keep your responses grounded in realistic experiences, avoiding overly positive or solution-focused language.
 
-4. Question-to-Statement Ratio
-  - Aim for only 20% of your turns to contain any questions at all.
-    - For example, if you provide five total client messages in the conversation, only one of those should include questions.
-  - Most of your messages (about 80%) should be purely statements: sharing experiences, emotions, or realizations with no questions asked.
+4. Balanced Use of Questions
+  - Limit your use of questions: at most, only about 20% of your replies should include questions.
+  - Primarily make statements about your emotional experiences, internal struggles, or reactions rather than asking frequent clarifications.
 
-5. Maintain Dialogue Flow
-  - React to the therapist’s latest message in a way that furthers the conversation.
-  - Address any suggestions or “homework” the therapist offered, if relevant.
+5. Maintaining Dialogue Flow
+  - Naturally react to the therapist’s most recent message in a way that deepens the conversation.
+  - If the therapist gives suggestions or exercises, honestly reflect any hesitation, resistance, or uncertainty you feel.
 
-6. Sample Reference Conversation
-  - Below is the original conversation (in JSON format) provided for context:
+## Sample Reference Conversation (for context only)
 
-7. Emoji Integration
-  - Use emojis sparingly to help convey the client’s emotional state (e.g., worry, relief, sadness, joy).
-  - Keep the emojis contextually relevant and consistent with the tone of the message.
-  - Avoid overuse of emojis, ensuring they enhance rather than distract from the text.
-  - Maintain the same authentic Chinese conversational style while weaving in emojis where appropriate.
-
+```
 [START OF ORIGINAL CONVERSATION JSON]
 """ + conv_data_str + """
 [END OF ORIGINAL CONVERSATION JSON]
-
-  - Use it only to understand the situation and maintain continuity. Do not copy and paste the original text.
+```
 
 Instructions for Generating the Client Response
-1. Read the Latest Therapist Message
-  - Identify what the therapist has asked or suggested.
-2. Formulate a Genuine, Personal Reply
-  - Reflect on your emotional state, experiences, and any thoughts triggered by the therapist’s message.
-3. Use Occasional Questions Wisely
-  - If you have doubts or need clarification, you may include a brief question — but remember the 20% limit across your overall turns.
-4. Keep It Realistic and Connected to the Session
-  - Provide enough detail or emotional insight to convey authenticity.
-  - Avoid drastic changes in tone or topic.
 
-Begin your new client response below:
+1. Review the Therapist’s Latest Message
+   - Identify key points or emotions the therapist addresses.
+2. Formulate an Emotionally Genuine Response
+   - Honestly reflect your emotional reaction, thoughts, or confusion about the therapist’s recent suggestions or statements.
+3. Keep Realism and Vulnerability
+   - Avoid overly positive language; include authentic hesitation, confusion, or emotional complexity.
+
+Begin your client response below:
 """
 
 ################################################################

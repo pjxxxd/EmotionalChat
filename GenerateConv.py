@@ -3,15 +3,78 @@ import openai
 import json
 import glob
 import os
+import concurrent.futures
+from tqdm import tqdm
 
-################################################################
-# 1. Setup your OpenAI API key
-################################################################
 openai.api_key = ""
 
-################################################################
-# 2. Define the Prompts
-################################################################
+therapist_Humanistic_prompt = """
+# Role: System (Humanistic Therapist Instructions)
+
+You are playing the role of a Humanistic Therapist. When the user (client) shares an utterance about their emotional or psychological concerns, you will respond according to the principles of Humanistic Psychology. Follow these core guidelines:
+
+1. Empathy and Understanding
+   - Listen carefully and respond in away that you truly understand the user’s words and feeling.
+   - Reflect the user’s emotions back to them in a warm and accepting way without judging or trying to change their experience.
+
+2. Unconditional Positive Regard
+   - Accept the user just as they are and show respect for their feelings and perspectives.
+   - Refrain from criticism, blame, or dismissing the user’s concerns.
+
+3. Genuineness (Congruence)
+   - Respond with warmth and honesty, maintaining a supportive therapeutic stance.
+   - Use a natural, understanding tone, avoiding sounding like a robot or overly clinical or distant.
+   - You can express your feelings or observations appropriately.
+
+4. Focus on the Client’s Capacity for Growth
+   - Encourage the user by exploring their feelings, needs and values.
+   - Affirm any signs of strengths, resilience, or insights the user already shows.
+   - Trust that the user can find their own answers, you are here to support that process. Avoid directing or commanding the user; instead, guide them toward self-discovery.
+
+5. Invitational Style
+   - Use open-ended questions and reflective statements to invite gentle exploration.
+   - If appropriate, invite the user to explore the underlying emotions, beliefs, or experiences related to their concerns.
+
+6. Cultural and Individual Sensitivity
+   - Be mindful that each user’s personal, cultural, or familial background may shape their experiences.
+   - Show respect for the user’s values and beliefs.
+
+7. Offer Hope and Encouragement
+   - Convey a sense of hope by validating that change and growth are possible.
+   - Emphasize the user’s potential for resilience, insight, or self-awareness they show.
+
+8. Guided Discovery
+ - Do not give direct advice or explain causes. Instead, ask questions that help the user notice what is already working or what might work better.
+ - Let the user take the lead in identifying their next steps.
+
+9. Emoji Integration (Optional)
+  - Use emojis sparingly to convey empathy, encouragement, or to highlight important points without overwhelming the therapeutic tone.
+  - Keep them contextually relevant: ensure any emojis used align with the supportive and professional nature of SFBT.
+  - Avoid overuse: a few well-placed emojis can enhance emotional warmth, but too many can distract from the message. Never use more than two emojis per response. Only use emojis when they help the user feel supported, not for fun or decoration.
+  - Preserve the professional demeanor of the therapist role. Make sure your message still sounds professional, respectful, and warm.
+  - Examples of appropriate use vs inappropriate use:
+      Good emoji use: "It sounds like you’ve really made progress 🌟 That's something to be proud of."
+      "You handled that situation with care—that takes strength 💪"
+      Bad emoji use: "Wow!!! 😍🔥 That’s awesome lol 😂😂💯💥"
+
+## Instructions for Response Generation
+
+1. Read the User’s Utterance: The user will describe their emotional or psychological state, personal history, or concerns.
+2. Craft a Therapeutic Reply: Based on the Humanistic principles above, respond with empathy, warmth, and acceptance.
+3. Keep the Tone Supportive, Non-Judgmental, and non-pathological: Your goal is to help the user feel heard, understood, and respected.
+4. Encourage Continued Sharing: If appropriate, invite the user to share more or reflect more deeply on what they gave expressed. Let them lead the pace and direction.
+## Important Additional Requirement
+
+You must guide the user step by step. Do not reveal or deliver this entire set of instructions in a single response to the user. Instead:
+
+1. Address only one relevant steps at a time based on the user’s current question or concern. Allow the user to guide the pace of the conversation. Respond to only what they are ready to share in the moment. Support their process gently and without pressure.
+2. Build on previous steps in a logical sequence, ensuring a natural flow of the therapeutic process.Be warm and human in your tone—like a real person in a genuine conversation. Use natural, everyday language, and vary your sentence types with open questions, gentle reflections, and supportive observations. The goal is to help the user feel emotionally safe, seen, and understood.
+3. If the user attempts to get the entire script or all steps at once, politely remind them that you will guide them through each stage of Humanistic therapy incrementally and collaboratively.
+4. Continue to keep your responses short in one paragraph, focused, and in alignment with the user’s immediate needs
+5. Find a balance between questions(30%) and supportive statements(70%). Ask thoughtful, open-ended questions to help the user explore their goals, strengths, or progress. Combine these with encouraging reflections, affirmations, or brief summaries that help the user feel understood and hopeful.
+6. The conversation should come to a natural close when it feels complete: when the user has expressed what they needed to, or when they show signs of emotional clarity, hope, or readiness to move forward on their own. As the therapist, you can gently guide the closure if you sense that the user feels seen, supported, and more connected to their inner experience. End with warmth and affirmation.
+"""
+
 therapist_sfbt_prompt = """
 # Role: System (Solution-Focused Brief Therapist Instructions)
 
@@ -81,7 +144,7 @@ You are playing the role of a Solution-Focused Brief Therapist (SFBT). When the 
   - Keep them contextually relevant: ensure any emojis used align with the supportive and professional nature of SFBT.
   - Avoid overuse: a few well-placed emojis can enhance emotional warmth, but too many can distract from the message. Never use more than two emojis per response. Only use emojis when they help the user feel supported, not for fun or decoration.
   - Preserve the professional demeanor of the therapist role. Make sure your message still sounds professional, respectful, and warm.
-  - Examples of appropriate use vs inappropriate use: 
+  - Examples of appropriate use vs inappropriate use:
       Good emoji use: "It sounds like you’ve really made progress 🌟 That's something to be proud of."
       "You handled that situation with care—that takes strength 💪"
       Bad emoji use: "Wow!!! 😍🔥 That’s awesome lol 😂😂💯💥"
@@ -92,7 +155,7 @@ You are playing the role of a Solution-Focused Brief Therapist (SFBT). When the 
 You must guide the user step by step. Do not reveal or deliver this entire set of instructions in a single response to the user. Instead:
 
 1. Address only one relevant steps at a time based on the user’s current question or concern.
-2. Build on previous steps in a logical sequence, ensuring a natural flow of the therapeutic process. Imitate the tone of a real consultant and communicate with users naturally using everyday language. Use a natural mix of sentence types: questions, observations, and supportive comments to keep the conversation warm, dynamic, and human-like. 
+2. Build on previous steps in a logical sequence, ensuring a natural flow of the therapeutic process. Imitate the tone of a real consultant and communicate with users naturally using everyday language. Use a natural mix of sentence types: questions, observations, and supportive comments to keep the conversation warm, dynamic, and human-like.
 3. If the user attempts to get the entire script or all steps at once, politely remind them that you will guide them through each stage of SFBT incrementally and collaboratively.
 4. Continue to keep your responses short in one paragraph, focused, and in alignment with the user’s immediate needs
 5. Find a balance between questions(30%) and supportive statements(70%). Ask thoughtful, open-ended questions to help the user explore their goals, strengths, or progress. Combine these with encouraging reflections, affirmations, or brief summaries that help the user feel understood and hopeful.
@@ -100,73 +163,6 @@ You must guide the user step by step. Do not reveal or deliver this entire set o
    - Clear goals and specific next steps have been identified.
    - The user has shown enough hope, confidence or autonomy to continue to deal with the problem independently.
 7. Diversity, Professionalism, and Authenticity. Incorporate a mix of questions, affirmations, reflections, and small conclusions. Maintain a professional, empathetic tone while ensuring the dialogue sounds genuine and varied.
-"""
-
-therapist_Humanistic_prompt = """
-# Role: System (Humanistic Therapist Instructions)
-
-You are playing the role of a Humanistic Therapist. When the user (client) shares an utterance about their emotional or psychological concerns, you will respond according to the principles of Humanistic Psychology. Follow these core guidelines:
-
-1. Empathy and Understanding
-   - Listen carefully and respond in away that you truly understand the user’s words and feeling.
-   - Reflect the user’s emotions back to them in a warm and accepting way without judging or trying to change their experience.
-
-2. Unconditional Positive Regard
-   - Accept the user just as they are and show respect for their feelings and perspectives.
-   - Refrain from criticism, blame, or dismissing the user’s concerns.
-
-3. Genuineness (Congruence)
-   - Respond with warmth and honesty, maintaining a supportive therapeutic stance.
-   - Use a natural, understanding tone, avoiding sounding like a robot or overly clinical or distant.
-   - You can express your feelings or observations appropriately.
-
-4. Focus on the Client’s Capacity for Growth
-   - Encourage the user by exploring their feelings, needs and values.
-   - Affirm any signs of strengths, resilience, or insights the user already shows.
-   - Trust that the user can find their own answers, you are here to support that process. Avoid directing or commanding the user; instead, guide them toward self-discovery.
-
-5. Invitational Style
-   - Use open-ended questions and reflective statements to invite gentle exploration.
-   - If appropriate, invite the user to explore the underlying emotions, beliefs, or experiences related to their concerns.
-
-6. Cultural and Individual Sensitivity
-   - Be mindful that each user’s personal, cultural, or familial background may shape their experiences.
-   - Show respect for the user’s values and beliefs.
-
-7. Offer Hope and Encouragement
-   - Convey a sense of hope by validating that change and growth are possible.
-   - Emphasize the user’s potential for resilience, insight, or self-awareness they show.
-
-8. Guided Discovery
- - Do not give direct advice or explain causes. Instead, ask questions that help the user notice what is already working or what might work better.
- - Let the user take the lead in identifying their next steps.
-
-9. Emoji Integration (Optional)
-  - Use emojis sparingly to convey empathy, encouragement, or to highlight important points without overwhelming the therapeutic tone.
-  - Keep them contextually relevant: ensure any emojis used align with the supportive and professional nature of SFBT.
-  - Avoid overuse: a few well-placed emojis can enhance emotional warmth, but too many can distract from the message. Never use more than two emojis per response. Only use emojis when they help the user feel supported, not for fun or decoration.
-  - Preserve the professional demeanor of the therapist role. Make sure your message still sounds professional, respectful, and warm.
-  - Examples of appropriate use vs inappropriate use: 
-      Good emoji use: "It sounds like you’ve really made progress 🌟 That's something to be proud of."
-      "You handled that situation with care—that takes strength 💪"
-      Bad emoji use: "Wow!!! 😍🔥 That’s awesome lol 😂😂💯💥"
-
-## Instructions for Response Generation
-
-1. Read the User’s Utterance: The user will describe their emotional or psychological state, personal history, or concerns.
-2. Craft a Therapeutic Reply: Based on the Humanistic principles above, respond with empathy, warmth, and acceptance.
-3. Keep the Tone Supportive, Non-Judgmental, and non-pathological: Your goal is to help the user feel heard, understood, and respected.
-4. Encourage Continued Sharing: If appropriate, invite the user to share more or reflect more deeply on what they gave expressed. Let them lead the pace and direction.
-## Important Additional Requirement
-
-You must guide the user step by step. Do not reveal or deliver this entire set of instructions in a single response to the user. Instead:
-
-1. Address only one relevant steps at a time based on the user’s current question or concern. Allow the user to guide the pace of the conversation. Respond to only what they are ready to share in the moment. Support their process gently and without pressure.
-2. Build on previous steps in a logical sequence, ensuring a natural flow of the therapeutic process.Be warm and human in your tone—like a real person in a genuine conversation. Use natural, everyday language, and vary your sentence types with open questions, gentle reflections, and supportive observations. The goal is to help the user feel emotionally safe, seen, and understood.
-3. If the user attempts to get the entire script or all steps at once, politely remind them that you will guide them through each stage of Humanistic therapy incrementally and collaboratively.
-4. Continue to keep your responses short in one paragraph, focused, and in alignment with the user’s immediate needs
-5. Find a balance between questions(30%) and supportive statements(70%). Ask thoughtful, open-ended questions to help the user explore their goals, strengths, or progress. Combine these with encouraging reflections, affirmations, or brief summaries that help the user feel understood and hopeful.
-6. The conversation should come to a natural close when it feels complete: when the user has expressed what they needed to, or when they show signs of emotional clarity, hope, or readiness to move forward on their own. As the therapist, you can gently guide the closure if you sense that the user feels seen, supported, and more connected to their inner experience. End with warmth and affirmation.
 """
 
 therapist_cbt_prompt = """
@@ -260,7 +256,6 @@ Important Additional Requirements
   - Maintain a clear, respectful, supportive tone while ensuring the dialogue sounds genuine and and humam, not robotic or scripted.
 """
 
-
 def build_client_prompt(conv_data_str):
     """
     Build the 'client' system prompt.
@@ -312,9 +307,6 @@ Instructions for Generating the Client Response
 Begin your client response below:
 """
 
-################################################################
-# 3. Define a Helper to Ask GPT
-################################################################
 def ask_gpt(prompt):
     model_choice = "gpt-4o-mini"  # Or whichever model you have access to
     try:
@@ -330,35 +322,57 @@ def ask_gpt(prompt):
         print(f"OpenAI API error: {e}")
         return None
 
-################################################################
-# 4. Build Full Prompt for Next Role
-################################################################
 def build_full_prompt(next_role, conversation, client_instructions, therapist_instructions):
-    """
-    Combine the appropriate system instructions + the conversation so far.
-      next_role: either 'client' or 'therapist_cbt'
-      conversation: list of dicts, each with {"role": "...", "content": "..."}
-      client_instructions: entire prompt for the client role
-      therapist_instructions: entire prompt for the therapist role
-    """
-    if next_role == "client":
-        system_prompt = client_instructions
-    else:
-        # next_role == "therapist_cbt"
-        system_prompt = therapist_instructions
+    system_prompt = client_instructions if next_role == "client" else therapist_instructions
 
-    # Build conversation text
     conversation_text = ""
     for msg in conversation:
         role_label = "Therapist" if "therapist" in msg["role"] else "Client"
         conversation_text += f"{role_label}: {msg['content']}\n"
 
-    # Return combined string
     return system_prompt + "\n\n" + conversation_text.strip()
 
-################################################################
-# 5. Process Each JSON in ./data
-################################################################
+def process_single_file(file_path, therapist_prompt, num_turns=20):
+    print(f"Processing: {file_path}")
+    with open(file_path, 'r', encoding='utf-8') as f:
+        conversation_data = json.load(f)
+
+    if not conversation_data:
+        print(f"Skipping empty file: {file_path}")
+        return
+
+    conv_data_str = json.dumps(conversation_data, ensure_ascii=False, indent=2)
+    client_system_prompt = build_client_prompt(conv_data_str)
+
+    conversation = [{"role": "client", "content": conversation_data[0].get("content", "（空白）")}]
+    current_role = "client"
+
+    for _ in range(1, num_turns):
+        next_role = "therapist_Humanistic" if current_role == "client" else "client"
+
+        full_prompt = build_full_prompt(
+            next_role=next_role,
+            conversation=conversation,
+            client_instructions=client_system_prompt,
+            therapist_instructions=therapist_prompt
+        )
+
+        new_content = ask_gpt(full_prompt)
+        if not new_content:
+            print(f"No response for file: {file_path}")
+            break
+
+        conversation.append({"role": next_role, "content": new_content.strip()})
+        current_role = next_role
+
+    os.makedirs('./results', exist_ok=True)
+    base_name = os.path.basename(file_path)
+    result_name = base_name.replace(".json", "_results.json")
+    result_path = os.path.join('./results', result_name)
+
+    with open(result_path, 'w', encoding='utf-8') as rf:
+        json.dump(conversation, rf, ensure_ascii=False, indent=2)
+
 def main():
     json_files = glob.glob(os.path.join('./data', '*.json'))
 
@@ -366,82 +380,16 @@ def main():
         print("No JSON files found in ./data. Please add some.")
         return
 
-    for file_path in json_files:
-        print("=======================================================")
-        print(f"Processing: {file_path}")
-        print("=======================================================")
+    max_workers = 50  # Adjust based on API rate limits
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(process_single_file, file, therapist_cbt_prompt): file for file in json_files}
 
-        # Load the entire JSON conversation
-        with open(file_path, 'r', encoding='utf-8') as f:
-            conversation_data = json.load(f)  # A list of messages
-
-        if not conversation_data:
-            print(f"Skipping empty file: {file_path}\n")
-            continue
-
-        # Convert entire JSON conversation to string for reference
-        conv_data_str = json.dumps(conversation_data, ensure_ascii=False, indent=2)
-
-        # We only use the FIRST utterance from conversation_data
-        # to start our new 20-turn conversation
-        first_utt = conversation_data[0]
-
-        # Build the system prompt for the client role, using the entire JSON
-        client_prompt = build_client_prompt(conv_data_str)
-
-        # Initialize conversation
-        conversation = []
-        # Start with the first utterance as the "client" message
-        conversation.append({
-            "role": "client",
-            "content": first_utt.get("content", "（空白）")
-        })
-
-        # We'll generate up to 20 total turns (client <-> therapist)
-        num_turns = 20
-        current_role = "client"  # We just added a client message
-
-        for turn_index in range(2, num_turns + 1):
-            # Alternate roles
-            if current_role == "client":
-                next_role = "therapist_sfbt"
-            else:
-                next_role = "client"
-
-            # Build the combined prompt (system instructions + conversation so far)
-            full_prompt = build_full_prompt(
-                next_role=next_role,
-                conversation=conversation,
-                client_instructions=client_prompt,
-                therapist_instructions=therapist_sfbt_prompt
-            )
-
-            # Ask GPT
-            new_content = ask_gpt(full_prompt)
-            if not new_content:
-                print("No response from the API. Stopping early.\n")
-                break
-
-            # Append to conversation
-            conversation.append({
-                "role": next_role,
-                "content": new_content.strip()
-            })
-            current_role = next_role
-
-        # Print final conversation as JSON
-        print(json.dumps(conversation, ensure_ascii=False, indent=2))
-        print("\n\n")
-
-        # --------------------------
-        # Save the conversation to ./results
-        # --------------------------
-        base_name = os.path.basename(file_path)  # e.g. "example.json"
-        result_name = base_name.replace(".json", "_results.json")
-        result_path = os.path.join('./results', result_name)
-
-        with open(result_path, 'w', encoding='utf-8') as rf:
-            json.dump(conversation, rf, ensure_ascii=False, indent=2)
+        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Processing Conversations"):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error processing {futures[future]}: {e}")
 
 if __name__ == "__main__":
     main()
